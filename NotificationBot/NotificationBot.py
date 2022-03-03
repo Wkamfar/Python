@@ -9,6 +9,8 @@ import schedule
 from PIL import ImageGrab
 import numpy as np
 import cv2
+import pyautogui as auto
+import keyboard
 def Message(subject, images, attachments, bodyText):
     msg = MimeMultipart()
     msg["Subject"] = subject
@@ -43,12 +45,12 @@ def DisplayScreen(image):
     cv2.imwrite("1.png", image)
     if cv2.waitKey(0) & 0xff == ord("q"):
         return
-def GetScreen():
+def GetScreen(scale):
         screen = ImageGrab.grab(bbox=(0, 0, 1920, 1080))
         screenNP = np.array(screen)
         # resize if you want to display
         screenHeight, screenWidth, c = screenNP.shape
-        screenScale = 0.5
+        screenScale = scale
         screenNP = cv2.resize(screenNP, (int(screenWidth * screenScale), int(screenHeight * screenScale)))
         screenNPGray = cv2.cvtColor(screenNP, cv2.COLOR_BGR2GRAY)
         return screenNP, screenNPGray
@@ -58,7 +60,7 @@ def GetScreen():
 def SeeSegments(colorImage, grayImage):
     grayImage = cv2.Canny(grayImage, 25, 100)
     ret, bw = cv2.threshold(grayImage, 128, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
-    connections = 1
+    connections = 0
     components, output, stats, centers = cv2.connectedComponentsWithStats(bw, connections, cv2.CV_32S)
     sizes = stats[1:, -1]
     components -= 1
@@ -70,6 +72,18 @@ def SeeSegments(colorImage, grayImage):
             cv2.rectangle(tempImage, (stats[i][0], stats[i][1]), (stats[i][0] + stats[i][2], stats[i][1] + stats[i][3]), (0, 30, 155), 2)
             tempImage[output == i + 1] = color
     DisplayScreen(tempImage)
+def HeatMap(heatMap, heatFrequencies, pixelLocations, totalFrames):
+    x, y = auto.position()
+    heatFrequencies[y][x] += 1
+    alreadyInList = False
+    for x1, y1 in pixelLocations:
+        heatMap[y1][x1] = 0, 0, int(255 * heatFrequencies[y1][x1]/totalFrames)
+        if x == x1 & y == y1:
+            alreadyInList = True
+    if alreadyInList == False:
+        pixelLocations.append((x, y))
+        heatMap[y][x] = 0, 0, int(255 * heatFrequencies[y][x] / totalFrames)
+    return heatMap, heatFrequencies, pixelLocations
 def Main():
     schedule.every(1).minutes.do(Mail)
     schedule.every(1).hour.do(Mail)
@@ -78,7 +92,20 @@ def Main():
     while True:
         schedule.run_pending()
         time.sleep(1)
-time.sleep(1)
-colorImage, grayImage = GetScreen()
-SeeSegments(colorImage, grayImage)
-
+#time.sleep(1)
+#colorImage, grayImage = GetScreen()
+#SeeSegments(colorImage, grayImage)
+heatMap = np.zeros([1080, 1920, 3], np.uint8)
+heatMap[:] = 255
+#DisplayScreen(heatMap)
+heatFrequencies = np.zeros([1080, 1920, 1], dtype=int)
+heatFrequencies[:][:] = 0
+pixelLocations = []
+totalFrames = 0
+while True:
+    totalFrames += 1
+    heatMap, heatFrequencies, pixelLocations = HeatMap(heatMap, heatFrequencies, pixelLocations, totalFrames)
+    if keyboard.is_pressed("q"):
+        break
+cv2.imshow("Megumi Fushiguro", heatMap)
+cv2.waitKey(0) & 0xff == ord("q")
