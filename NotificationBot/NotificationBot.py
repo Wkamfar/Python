@@ -75,15 +75,16 @@ def SeeSegments(colorImage, grayImage):
 def HeatMap(heatMap, heatFrequencies, pixelLocations, totalFrames):
     x, y = auto.position()
     heatFrequencies[y][x] += 1
+    totalFrames += 1
     alreadyInList = False
     for x1, y1 in pixelLocations:
-        heatMap[y1][x1] = 0, 0, int(255 * heatFrequencies[y1][x1]/totalFrames)
-        if x == x1 & y == y1:
+        heatMap[y1][x1] = 25, 25, int(255 * heatFrequencies[y1][x1]/totalFrames)
+        if x == x1 and y == y1:
             alreadyInList = True
     if alreadyInList == False:
         pixelLocations.append((x, y))
-        heatMap[y][x] = 0, 0, int(255 * heatFrequencies[y][x] / totalFrames)
-    return heatMap, heatFrequencies, pixelLocations
+        heatMap[y][x] = 25, 25, int(255 * heatFrequencies[y][x] / totalFrames)
+    return heatMap, heatFrequencies, pixelLocations, totalFrames
 def Main():
     schedule.every(1).minutes.do(Mail)
     schedule.every(1).hour.do(Mail)
@@ -96,16 +97,16 @@ def Main():
 #colorImage, grayImage = GetScreen()
 #SeeSegments(colorImage, grayImage)
 heatMap = np.zeros([1080, 1920, 3], np.uint8)
-heatMap[:] = 255
+heatMap[:] = 0
 #DisplayScreen(heatMap)
 heatFrequencies = np.zeros([1080, 1920, 1], dtype=int)
-heatFrequencies[:][:] = 0
 pixelLocations = []
 totalFrames = 0
 while True:
-    totalFrames += 1
-    heatMap, heatFrequencies, pixelLocations = HeatMap(heatMap, heatFrequencies, pixelLocations, totalFrames)
+    heatMap, heatFrequencies, pixelLocations, totalFrames = HeatMap(heatMap, heatFrequencies, pixelLocations, totalFrames)
+    cv2.imshow("Yuji Itadori", heatMap)
+    cv2.waitKey(1) & 0xff == ord("w")
     if keyboard.is_pressed("q"):
         break
-cv2.imshow("Megumi Fushiguro", heatMap)
+#cv2.imshow("Megumi Fushiguro", heatMap)
 cv2.waitKey(0) & 0xff == ord("q")
