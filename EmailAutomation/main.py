@@ -27,8 +27,8 @@ def Mail():
     smtp.ehlo()
     smtp.starttls()
     smtp.login('williampy3auto@gmail.com', 'Python0000')
-    totalMessages = 100
-    recipients = ["wkamfar@gmail.com"]
+    totalMessages = 1
+    recipients = ["ck3661@trevor.org"]
     images = ["C:\\Users\\wkamf\\Python\\EmailAutomation\\RespawnLogo.png", "C:\\Users\\wkamf\\Python\\EmailAutomation\\EldenRingPicture.png"]
     attachments = ["C:\\Users\\wkamf\\Python\\EmailAutomation\\main.py"]
     for i in range(0, totalMessages):
