@@ -11,6 +11,16 @@ import numpy as np
 import cv2
 import pyautogui as auto
 import keyboard
+import DrawShapes
+resize = 0.25
+heatMap = np.zeros([1080, 1920, 3], np.uint8)
+mapHeight, mapWidth, c = heatMap.shape
+heatMap = cv2.resize(heatMap, (round(mapWidth * resize), round(mapHeight * resize)))
+heatMap[:] = 0
+heatFrequencies = np.zeros([1080, 1920, 1], dtype=float)
+frequenciesHeight, frequenciesWidth, c = heatFrequencies.shape
+heatFrequencies = cv2.resize(heatFrequencies, (round(frequenciesWidth * resize), round(frequenciesHeight * resize)))
+totalFrames = 0
 def Message(subject, images, attachments, bodyText):
     msg = MimeMultipart()
     msg["Subject"] = subject
@@ -85,6 +95,26 @@ def HeatMap(heatMap, heatFrequencies, pixelLocations, totalFrames):
         pixelLocations.append((x, y))
         heatMap[y][x] = 25, 25, int(255 * heatFrequencies[y][x] / totalFrames)
     return heatMap, heatFrequencies, pixelLocations, totalFrames
+def HeatMap2():
+    x, y = auto.position()
+    global totalFrames
+    global heatFrequencies
+    global resize
+    x = round(x * resize)
+    y = round(y * resize)
+    totalFrames += 1
+    heatFrequencies = DrawShapes.HeatCircle(30 * resize, 0.25,x, y, heatFrequencies, round(1920 * resize), round(1080 * resize))
+    heatFrequencies = DrawShapes.HeatCircle(20 * resize, 0.25,x, y, heatFrequencies, round(1920 * resize), round(1080 * resize))
+    heatFrequencies = DrawShapes.HeatCircle(10 * resize, 0.25,x, y, heatFrequencies, round(1920 * resize), round(1080 * resize))
+    heatFrequencies = DrawShapes.HeatCircle(5 * resize, 0.25,x, y, heatFrequencies, round(1920 * resize), round(1080 * resize))
+
+def HeatMapUpdate():
+    global totalFrames
+    global heatFrequencies
+    global heatMap
+    for x in range(0, round(1920 * resize)):
+        for y in range(0, round(1080 * resize)):
+            heatMap[y][x] = 25, 25, int(255 * (heatFrequencies[y][x] / totalFrames)**0.5)
 def Main():
     schedule.every(1).minutes.do(Mail)
     schedule.every(1).hour.do(Mail)
@@ -96,15 +126,15 @@ def Main():
 #time.sleep(1)
 #colorImage, grayImage = GetScreen()
 #SeeSegments(colorImage, grayImage)
-heatMap = np.zeros([1080, 1920, 3], np.uint8)
-heatMap[:] = 0
-#DisplayScreen(heatMap)
-heatFrequencies = np.zeros([1080, 1920, 1], dtype=int)
-pixelLocations = []
-totalFrames = 0
+schedule.every(1).seconds.do(HeatMapUpdate)
 while True:
-    heatMap, heatFrequencies, pixelLocations, totalFrames = HeatMap(heatMap, heatFrequencies, pixelLocations, totalFrames)
-    cv2.imshow("Yuji Itadori", heatMap)
+    schedule.run_pending()
+    HeatMap2()
+    screen, screenGray = GetScreen(resize)
+    alpha = 0.4
+    beta = 1 - alpha
+    overlayImage = cv2.addWeighted(screen, alpha, heatMap, beta, .0)
+    cv2.imshow("Yuji Itadori", overlayImage)
     cv2.waitKey(1) & 0xff == ord("w")
     if keyboard.is_pressed("q"):
         break
